@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <link rel="stylesheet" href="/vendor/highlightjs/11.9.0/styles/default.min.css"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>D3 Rotation Example</title>
+</head>
+<body>
+<script type="module" src="/src/main.ts"></script>
+<div class="main">
+    <h1>D3 Rotation Example</h1>
+    <p>
+        In this article we demonstrate how to create lines which can be grabbed and rotated with the mouse.
+
+        We will build up to the end result, beginning with simply rendering some points.
+        Then we'll connect them together with a line, and make use of the <code>call</code> method to handle the mouse
+        behaviour. We make use of <a href="https://d3js.org/">d3</a> framework for the visualization.
+    </p>
+    <div id="example"></div>
+
+    <h2>Plotting some points</h2>
+    <p>
+        To begin, we need a type for the points.
+        Sometimes we will want to represent <code>(x, y)</code> points and sometimes we will want to treat them
+        as vectors. The <code>Vector2</code> type works for both these use cases.
+        The <code>LabeledPoint</code> type allows for a text annotation.
+        The offsets which are used to position the text alongside the point.
+    </p>
+    <pre><code class="language-typescript">type Vector2 = {
+    x: number;
+    y: number;
+}
+
+type LabeledPoint = Vector2 & {
+    text: string | null
+    offsetX: string
+    offsetY: string
+}</code></pre>
+    <p>The are two different ways to create points. Cartesian coordinates <code>(x, y)</code> work well in many cases
+        while polar coordinates <code>(length, angle)</code> will prove convenient for handling rotation.
+    </p>
+    <pre><code class="language-typescript">/**
+ * Construct a point with an associated text label.
+ *
+ * @param x       The x-coordinate of the point
+ * @param y       The y-coordinate of the point
+ * @param text    The label text
+ * @param offsetX Offset the label along the x-axis. Used to set the 'dx' attribute. Defaults to ".2em"
+ * @param offsetY Offset the label along the y-axis. Used to set the 'dy' attribute. Defaults to "-.2em"
+ */
+function create(x: number,
+                y: number,
+                text: string | null = null,
+                offsetX: string = ".2em",
+                offsetY: string = "-.2em"): LabeledPoint {
+    return {x, y, text, offsetX, offsetY}
+}
+
+/**
+ * Construct a point with an associated text label from polar coordinates.
+ *
+ * @param length  The length of a vector from the origin to the point
+ * @param angle   The angle between the positive x-axis and the point (in radians)
+ * @param text    The label of the new point
+ * @param offsetX Offset the label along the x-axis. Used to set the 'dx' attribute. Defaults to ".2em"
+ * @param offsetY Offset the label along the y-axis. Used to set the 'dy' attribute. Defaults to "-.2em"
+ */
+function fromPolar(length: number,
+                   angle: number,
+                   text: string | null = null,
+                   offsetX: string = ".2em",
+                   offsetY: string = "-.2em"): LabeledPoint {
+    let x = length * Math.cos(angle)
+    let y = length * Math.sin(angle)
+    return {x, y, text, offsetX, offsetY}
+}</code></pre>
+    <p>
+        A central design pattern of d3 is that it operates with collections of data. The <code>drawPoints</code> method
+        takes in an array of points and draws all of them on the <code>Graph</code> along with their associated labels.
+        The <code>Graph</code> type is detailed in a previous article <a href="">here</a>. The gridded region of the
+        graph
+        with is called the plot.
+        <br>
+        <br>
+        The <code>d3.select(graph.svg)</code> method selects the parent <code>&lt;SVG&gt;</code>.
+        Then <code>selectAll('circle.point')</code> locates all the circle child elements within it because these have
+        the <code>.point</code> class. The points are inserted by the combination of
+        <code>data(points)</code> method and <code>join(enter =&gt; enter.append('circle').attr("class",
+        "point"))</code> method call.
+        This creates a new point for each element in the <code>points</code> array. The <code>toPixelCoords</code>
+        method is used to
+        covert from the unit-coordinates of the plot to the pixel coordinates of the parent <code>&lt;SVG&gt;</code>.
+        Labels are added to the <code>Graph</code> in a similar manner to the points.
+    </p>
+    <pre><code class="language-typescript">import * as d3 from "d3";
+import {Graph} from "d3-example-grid";
+
+/**
+ * Draw labeled points on a graph.
+ *
+ * @param graph The diagram to draw on
+ * @param points An array of points to draw
+ */
+function drawPoints(graph: Graph, points: LabeledPoint[]) {
+    d3.select(graph.svg)
+        .selectAll('circle.point')
+        .data(points)
+        .join(enter =&gt; enter.append('circle').attr("class", "point"))
+        .attr('cx', d =&gt; graph.toPixelCoords(d).x)
+        .attr('cy', d =&gt; graph.toPixelCoords(d).y)
+        .attr('r', 0.1 * graph.plot.resolution)
+        .attr('fill', '#000000');
+
+    d3.select(graph.svg)
+        .selectAll('text.label')
+        .data(points)
+        .join(enter =&gt; enter.append("text").attr("class", "label"))
+        .attr("x", d =&gt; graph.toPixelCoords(d).x)
+        .attr("y", d =&gt; graph.toPixelCoords(d).y)
+        .attr("dx", d =&gt; d.offsetX)
+        .attr("dy", d =&gt; d.offsetY)
+        .text(d =&gt; d.text)
+}
+</code></pre>
+    <!--    <p>-->
+    <!--        Below is an example of how we can draw two points using what we have developed so far.-->
+    <!--    </p>-->
+    <!--    <pre><code class="language-typescript">import {createGraph} from "d3-example-grid";-->
+    <!--import {LabeledPoint} from "./modules/point.ts";-->
+    <!--import * as POINT from "./modules/point.ts";-->
+
+    <!--let diagram = createGraph(640, 400)-->
+    <!--let b: LabeledPoint = POINT.create(2.5, 3.5, "b")-->
+    <!--let c: LabeledPoint = POINT.create(9.5, 4.5, "c")-->
+
+    <!--drawPoints(diagram, [b, c])-->
+    <!--let example = document.querySelector&lt;HTMLDivElement&gt;('#example_02')!-->
+    <!--example.append(diagram.svg)</code></pre>-->
+    <p>Which results in the following graph</p>
+    <div id="example_02"></div>
+    <p>
+        In the example above, the <code>d3-example-grid</code> module has not been published to a npm registry like
+        <a href="https://registry.npmjs.org ">https://registry.npmjs.org </a>.
+        Instead, it is included via the <code>package.json</code> as follows.
+    </p>
+    <pre><code>{
+  // ...
+  "dependencies": {
+    // ...
+    "d3-example-grid": "git://github.com/CheyneWilson/d3-example-grid.git",
+    // ...
+  }
+}</code></pre>
+
+    <p>The next step is to draw a line between the points that can be rotated by grabbing it with the mouse.
+        We start with defining the <code>LineDatum</code> type. Because we will want to draw many variants in the
+        future,
+        we include support for arbitrary CSS classes which will be applied by the draw function.
+    </p>
+    <pre><code class="language-typescript">type LineDatum =  {
+    start: Vector2
+    end: Vector2
+    classes: string[],
+    rotatable: boolean
+}
+
+/**
+ * Create a new line between two points
+ *
+ * @param start     The origin of the line
+ * @param end       The destination of the line
+ * @param classes   CSS classes to style the line with
+ * @param rotatable When true, allow the line to be rotated around the start point
+ */
+function create(start: Vector2, end: Vector2, classes: string[] = [], rotatable: boolean = false): Line {
+    return {start, end, classes, rotatable}
+}</code></pre>
+    <h2>Drawing a rotatable line</h2>
+    <p>
+        The <code>drawLines</code> function is presented below. It can draw both rotatable and fixed lines.
+        This function takes in an array of callbacks which are invoked when the line is dragged and rotated.
+        Within the function, the <code>rotationHandler</code> is attached to each line which has the
+        <code>rotatable</code>
+        property.
+        Each line has the <code>.line</code> class which is used for selection. Without a marker like this class, it
+        would
+        erroneously select other line elements such as the background grid.
+
+        The <code> .attr("class", function (d, _, e) { }</code> method call appends additional classes
+        specific to each <code>LineDatum</code> custom styling.
+    </p>
+    <pre><code class="language-typescript">/**
+ * Draw lines on a diagram.
+ *
+ * If the line is rotatable, attach a rotationHandler to it.
+ *
+ * @param context    The diagram to draw on
+ * @param lines      An array of lines to dray
+ * @param callbacks  Callbacks to attach the rotation handler
+ */
+function drawLines(context: Graph, lines: LineDatum[], callbacks: Array&lt;() =&gt; void&gt;) {
+    d3.select(context.svg)
+        .selectAll("line.line")
+        .data(lines)
+        .join(enter =&gt; enter.append("line").attr("class", "line"))
+        .each((d, _, el) =&gt; {
+            if (d.rotatable) {
+                d3.selectAll(el)
+                    .classed("rotatable", true)
+                    .call(rotationHandler(graph, callbacks))
+            }
+        })
+        .attr("class", function (d, _, e) {
+            let existingClasses = d3.selectAll(e).attr("class").split(" ")
+            existingClasses.push(...d.classes)
+            return existingClasses.join(" ");
+        })
+        .attr("x1", d =&gt; GRAPH.toPixelCoords(context, d.start).x)
+        .attr("y1", d =&gt; GRAPH.toPixelCoords(context, d.start).y)
+        .attr("x2", d =&gt; GRAPH.toPixelCoords(context, d.end).x)
+        .attr("y2", d =&gt; GRAPH.toPixelCoords(context, d.end).y);
+}</code></pre>
+    <p>
+        The styles used for the example are shown below.
+    </p>
+    <pre><code class="language-css">.rotatable {
+  cursor: grab;
+}
+
+.line {
+  stroke: #646cff;
+  stroke-width: 3;
+}</code></pre>
+
+
+    <p>
+        The <code>rotationHandler</code> attaches the drag event listeners to the line.
+        It "closes over" the <code>Graph</code> context to allow transformation between pixel-coordinates and
+        unit-coordinates.
+        All the geometric calculations are done in unit-coordinates, and these are converted back for rendering.
+        The <code>dragged</code> method rotates the line to the location of the cursor.
+        This is done by calculating the angle to the mouse and moving the end of the line accordingly.
+        It also executes callbacks provided to it.
+        The <code>dragged</code> and <code>dragged</code> methods change the styles on the line to
+        indicate when the line is being dragged by the mouse.
+    </p>
+    <pre><code class="language-typescript">/**
+ * Create a rotation handler for an SVGLineElement to handle when it is dragged
+ *
+ * @param context   The Graph the line belongs to
+ * @param callbacks An array of callbacks to invoke when the line is dragged / rotated
+ */
+let rotationHandler = (context: Graph, callbacks: Array&lt;() =&gt; void&gt;) =&gt; {
+    /**
+     * Rotate this line element when it is dragged with the mouse
+     *
+     * @param event The mouse event
+     * @param d     The line data
+     */
+    function dragged(this: SVGLineElement, event: MouseEvent, d: Line) {
+        // Convert the grid location to plot coordinates
+        let gripLocation: Vector2 = context.fromPixelCoords({x: event.x, y: event.y})
+        // Calculate the grip location relative to the start of the line
+        let relativeGripLocation: Vector2 = subtract(gripLocation, d.start)
+
+        // Calculate the angle and relative location of the new end point
+        let newAngle = angle(relativeGripLocation)
+        let length = distance(d.start, d.end)
+        let relativeEnd = fromPolar(length, newAngle)
+
+        // Transform from relative back to absolute plot coordinates and update the original datum
+        // Note, we cannot replace d.end with the updatedEndPoint because d3 is using the original reference
+        let updatedEndPoint = add(d.start, relativeEnd)
+        d.end.x = updatedEndPoint.x
+        d.end.y = updatedEndPoint.y
+
+        // Convert back to pixel coords
+        let p2 = context.toPixelCoords(updatedEndPoint)
+
+        // Change the end location of the SVGLineElement
+        d3.select(this)
+            .attr("x2", p2.x)
+            .attr("y2", p2.y);
+
+        // Propagate changes to callbacks
+        callbacks.forEach(c =&gt; c())
+    }
+
+    function dragStarted(this: Element) {
+        d3.select(this).style("cursor", "grabbing");
+    }
+    function dragEnded(this: Element) {
+        d3.select(this).style("cursor", null);
+    }
+
+    return &lt;any&gt; d3.drag()
+        .on("start", dragStarted)
+        .on("drag", &lt;any&gt; dragged)
+        .on("end", dragEnded)
+}</code></pre>
+    <p>
+        Calling the new <code>drawLines</code> function creates the example below. You can drag the line to rotate it.
+        But it has a problem, the point "c" doesn't rotate. The callback parameter will be used to fix this.
+    </p>
+    <pre><code class="language-typescript">{
+    let diagram = createGraph(640, 400)
+
+    let b: LabeledPoint = POINT.create(2.5, 3.5, "b")
+    let c: LabeledPoint = POINT.create(9.5, 4.5, "c")
+
+    drawPoints(diagram, [b, c])
+    let bc: LineDatum = LINE.create(b, c, [], true)
+    drawLines(diagram, [bc], [])
+
+    let example = document.querySelector&lt;HTMLDivElement&gt;('#example_03')!
+    example.append(diagram.svg)
+}</code></pre>
+    <div id="example_03"></div>
+    <h2>Complete Rotation Example</h2>
+    <p>
+        To fix this problem, we declare the <code>drawPointsFn</code> and pass it to the <code>drawLines</code>
+        function.
+        When the line is rotated, it triggers <code>drawPoints</code> to be called again which updates the points
+        displayed.
+    </p>
+    <pre><code class="language-typescript">{
+    let diagram = createGraph(640, 400)
+
+    let b: LabeledPoint = POINT.create(2.5, 3.5, "b")
+    let c: LabeledPoint = POINT.create(9.5, 4.5, "c")
+
+    let bc: LineDatum = LINE.create(b, c, [], true)
+
+    const drawPointsFn = () =&gt; drawPoints(diagram, [b,c ])
+    drawLines(diagram, [bc], [drawPointsFn])
+    drawPointsFn()
+
+    let example = document.querySelector&lt;HTMLDivElement&gt;('#example_04')!
+    example.append(diagram.svg)
+}</code></pre>
+    <div id="example_04"></div>
+    <p>
+        In the next this series, we're going to use the components created to explain Circle Inversion. And to finish
+        things off, we will create an example of the Peaucellier–Lipkin linkage - a special coupling that transforms
+        rotational motion into linear motion and vice-versa.
+    </p>
+</div>
+</body>
+</html>
