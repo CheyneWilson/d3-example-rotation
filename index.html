@@ -465,9 +465,7 @@ let diagram = createGraph(640, 400)
 let b = new LabeledPoint(5, 4, "b")
 let c = new LabeledPoint(4, 7.5, "c")
 
-let bx = {
-    location: Vector2.from(b.location).add({x: 1, y: 0}),
-}
+let bx = {location: b.location.add({x: 1, y: 0})}
 
 let cbx = new AngleAnnotation(b, bx, c)
 let bc = new RotatableLine(b, c, [], true)

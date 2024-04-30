@@ -1,6 +1,6 @@
 import './style.css'
 
-import {createGraph, Graph} from "d3-example-grid";
+import {createGraph} from "d3-example-grid";
 
 import {AngleAnnotation} from "./main/AngleAnnotation.ts";
 import {LabeledPoint} from "./main/LabeledPoint.ts";
@@ -11,30 +11,35 @@ import {drawAngles, drawLines, drawPoints} from "./main/draw.ts";
 import hljs from 'highlight.js/lib/core';
 import typescript from 'highlight.js/lib/languages/typescript';
 import css from 'highlight.js/lib/languages/css';
-import {Vector2} from "geometry-lib";
 
 
 hljs.registerLanguage('typescript', typescript);
 hljs.registerLanguage('css', css);
 hljs.highlightAll();
 
-{
+{   // intro example
     let diagram = createGraph(640, 400)
     let b = new LabeledPoint(5, 4, "b")
     let c = new LabeledPoint(4, 7.5, "c")
     let bc = new RotatableLine(b, c, [], true)
 
+    let bx = {location: b.location.add({x: 1, y: 0})}
+    let cbx = new AngleAnnotation(b, bx, c)
+
     const drawPointsFn = () => drawPoints(diagram, [b, c])
-    drawLines(diagram, [bc], [drawPointsFn])
+    const drawAnglesFn = () => drawAngles(diagram, [cbx])
+
+    drawLines(diagram, [bc], [drawPointsFn, drawAnglesFn])
     drawPointsFn()
+    drawAnglesFn()
 
     let example = document.querySelector<HTMLDivElement>('#example')!
     example.append(diagram.svg)
 }
 
 
-{
-    let diagram: Graph = createGraph(640, 400)
+{   // plot example
+    let diagram = createGraph(640, 400)
     let b = new LabeledPoint(5, 4, "b")
     let c = new LabeledPoint(4, 7.5, "c")
     drawPoints(diagram, [b, c])
@@ -84,7 +89,7 @@ hljs.highlightAll();
     let c = new LabeledPoint(4, 7.5, "c")
 
     let bx = {
-        location: Vector2.from(b.location).add({x: 1, y: 0}),
+        location: b.location.add({x: 1, y: 0})
     }
 
     let cbx = new AngleAnnotation(b, bx, c)
