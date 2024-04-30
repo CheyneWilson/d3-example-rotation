@@ -69,3 +69,13 @@ body {
   stroke: #646cff;
   stroke-width: 3;
 }
+
+.angle {
+  text-anchor: middle;
+  font-size: 0.8em;
+}
+
+
+.grid line {
+  opacity: 0.3;
+}
