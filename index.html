@@ -22,8 +22,10 @@
     <p>
         To begin, we need to represent points. Classes are sometimes derided in JavaScript as unnecessary or because
         JavaScript doesn't have <i>true</i> classes and instead uses a prototypical inheritance.
-        The <code>Vector2</code> class provides a fluent API for manipulating vectors and points. We could achieve the
-        same outcome by adding functions to the object prototype but using a class seemed more concise.
+        The <code>Vector2</code> class is used for vectors and points and provides a fluent API for
+        manipulating them. While we could achieve the
+        same outcome by adding functions to an object prototype using a class seemed more concise. The methods of
+        the <code>Vector2</code> class accept plain JavaScript objects with <code>{x, y}</code> values as arguments.
         <br>
         <br>
         Each <code>Vector2</code> instance is immutable. There are good reasons for this. It makes calculations
